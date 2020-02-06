@@ -1,0 +1,20 @@
+#!/bin/sh
+
+# Backup File Name.
+backup_name=dev-`date +%Y-%m-%d-%H%M`
+
+# Dump from mongodb to backup directory.
+mongodump -d zyyahdb --username naga.teja --password teja123 --out ~/dev-backups/$backup_name
+
+# Moving to backup directory.
+cd ~/dev-backups
+
+# Creating tar of backup directory.
+tar -czf $backup_name.tar.gz -P ~/dev-backups/$backup_name
+
+# Uploading tar to S3 bucket.
+aws s3 cp ~/dev-backups/$backup_name.tar.gz s3://zyyah-mongodb-backup/dev/
+
+# Removing files from local
+rm -rf $backup_name
+rm $backup_name.tar.gz

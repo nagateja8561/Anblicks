@@ -1,0 +1,61 @@
+#!/bin/sh
+
+# Configuring the package management system (yum)
+
+cat >> /etc/yum.repos.d/mongodb-org-4.2.repo <<EOL
+[mongodb-org-4.2]
+name=MongoDB Repository
+baseurl=https://repo.mongodb.org/yum/amazon/2/mongodb-org/4.2/x86_64/
+gpgcheck=1
+enabled=1
+gpgkey=https://www.mongodb.org/static/pgp/server-4.2.asc
+EOL
+
+
+# Install the MongoDB packages
+
+sudo yum install -y mongodb-org
+
+# Starting MongoDb
+
+sudo systemctl start mongod
+
+# Checking Status of MongoDb
+
+sudo systemctl status mongod
+
+# Changing bindIp in mongod.conf file
+
+sed -i '29s/.*/  bindIp: 0.0.0.0/' /etc/mongod.conf
+
+# Restarting Mongodb
+
+sudo systemctl restart mongod
+
+# Configuring aws credentials
+
+aws configure
+
+# Getting backup files from S3
+
+aws s3 cp s3://zyyah-mongodb-backup/dev/ ./ --recursive
+
+# Extracting files fron tar.gz archive
+
+read -p "Enter name of tar.gz archive file : " name1
+
+tar -xvzf $name1
+
+# Removing files from local
+
+rm -rf dev-*
+
+# Moving to backup directory
+
+cd /home/ec2-user/root/dev-backups
+
+# Restoring data from zyyahdb
+
+read -p "Enter name of folder containing database : " name2
+
+sudo mongorestore $name2
