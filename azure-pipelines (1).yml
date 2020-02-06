@@ -1,0 +1,44 @@
+trigger:
+- master
+
+pool:
+  vmImage: 'Ubuntu-16.04'
+
+steps:
+- task: NodeTool@0
+  inputs:
+    versionSpec: '12.x'
+  displayName: 'Install Node.js'
+  
+- script: |
+    npm install
+    cp -v .prodEnvironment .env
+- task: ArchiveFiles@2
+  inputs:
+    rootFolderOrFile: '/home/vsts/work/1/s/'
+    includeRootFolder: false
+    archiveType: 'zip'
+    archiveFile: 'zyyah-prod-api.zip'
+    replaceExistingArchive: true
+    
+- task: S3Upload@1
+  displayName: 'S3 Upload: zyyah-prod-api-builds'
+  inputs:
+    awsCredentials: 'zyyah'
+    regionName: 'us-east-1'
+    bucketName: 'zyyah-prod-api-builds'
+    globExpressions: zyyah-prod-api.zip
+    createBucket: true
+
+- task: BeanstalkDeployApplication@1
+  displayName: 'Deploy to Elastic Beanstalk: zyyah'
+  inputs:
+    awsCredentials: 'zyyah'
+    regionName: 'us-east-1'
+    applicationName: 'zyyah-api'
+    environmentName: 'ZyyahApi-Prod'
+    applicationType: s3
+    deploymentBundleBucket: 'zyyah-prod-api-builds'
+    deploymentBundleKey: zyyah-prod-api.zip
+    logRequest: true
+    logResponse: true

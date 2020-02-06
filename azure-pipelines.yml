@@ -1,0 +1,42 @@
+trigger:
+- master
+
+pool:
+  vmImage: 'Ubuntu-16.04'
+
+steps:
+- task: NodeTool@0
+  inputs:
+    versionSpec: '12.x'
+  displayName: 'Install Node.js'
+
+- script: |
+    npm install -g @angular/cli
+    npm install
+    ng build --configuration=$(env)
+    cd elastic-beanstalk
+    zip -r output.zip ./*
+  displayName: 'install, build and zip'
+
+- task: S3Upload@1
+  displayName: 'S3 Upload: zyyah-dev-builds'
+  inputs:
+    awsCredentials: 'aws-zyyah-account'
+    regionName: 'us-east-1'
+    bucketName: 'zyyah-dev-builds'
+    sourceFolder: 'elastic-beanstalk'
+    globExpressions: output.zip
+    createBucket: true
+
+- task: BeanstalkDeployApplication@1
+  displayName: 'Deploy to Elastic Beanstalk: zyyah'
+  inputs:
+    awsCredentials: 'aws-zyyah-account'
+    regionName: 'us-east-1'
+    applicationName: 'zyyah-dev'
+    environmentName: 'ZyyahDev-env-1'
+    applicationType: s3
+    deploymentBundleBucket: 'zyyah-dev-builds'
+    deploymentBundleKey: output.zip
+    logRequest: true
+    logResponse: true
